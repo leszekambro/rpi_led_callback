@@ -1,39 +1,47 @@
-#!/usr/bin/python
-
+import time
 import RPi.GPIO as GPIO
 
+BUTTON1_PIN = 17
+BUTTON2_PIN = 27
+LED_PIN = 22
+
+# State variables
+button1_pressed = False
+button2_pressed = False
+
+# Callback for button 1
+def button1_callback(channel):
+    global button1_pressed
+    button1_pressed = GPIO.input(BUTTON1_PIN)
+    check_led_state()
+
+# Callback for button 2
+def button2_callback(channel):
+    global button2_pressed
+    button2_pressed = GPIO.input(BUTTON2_PIN)
+    check_led_state()
+
+# Check if both buttons are pressed to light the LED
+def check_led_state():
+    if button1_pressed and button2_pressed:
+        GPIO.output(LED_PIN, GPIO.HIGH)
+    else:
+        GPIO.output(LED_PIN, GPIO.LOW)
+
+# GPIO setup
 GPIO.setmode(GPIO.BCM)
+GPIO.setup(BUTTON1_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(BUTTON2_PIN, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(LED_PIN, GPIO.OUT)
 
-# GPIO 23 & 24 - inputs
-
-GPIO.setup(23, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(24, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-
-
-# threaded callback function
-# zostanie to uruchomione w innym watku po wykryciu okreslonego zdarzenia
-def my_callback(channel):
-    print("Wykryto zbocze opadajace na porcie 24")
-    print("w glownym watku dalej czekamy na przycisk na porcie 23\n")
-
-
-print("***")
-print("pkt test 1")
-print("***")
-
-raw_input("Wcisnij enter jak bedziesz gotowy \n>")
-
-GPIO.add_event_detect(24, GPIO.FALLING, callback=my_callback)
-
+# Event detect
+GPIO.add_event_detect(BUTTON1_PIN, GPIO.BOTH, callback=button1_callback, bouncetime=200)
+GPIO.add_event_detect(BUTTON2_PIN, GPIO.BOTH, callback=button2_callback, bouncetime=200)
 
 try:
-    print("Czekam na przycisk na porcie 23...")
-    GPIO.wait_for_edge(23, GPIO.FALLING)
-    print("Przycisk na porcie 23 wciśnięty. Koniec programu.")
-
+    while True:
+        time.sleep(0.1)
 except KeyboardInterrupt:
-    print("\nProgram przerwany przez użytkownika.")
-
+    print("Exiting program")
 finally:
     GPIO.cleanup()
-    print("GPIO posprzątane")
